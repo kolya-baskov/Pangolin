@@ -90,6 +90,7 @@ VideoPixelFormat TgaFormat(int depth, int color_type, int color_map)
 
 TypedImage LoadFromVideo(const std::string& uri)
 {
+#ifdef BUILD_PANGOLIN_VIDEO
     std::unique_ptr<VideoInterface> video = OpenVideo(uri);
     if(!video || video->Streams().size() != 1) {
         throw pangolin::VideoException("Wrong number of streams: exactly one expected.");
@@ -115,14 +116,21 @@ TypedImage LoadFromVideo(const std::string& uri)
     }
 
     return image;
+#else 
+    throw std::runtime_error("LoadFromVideo Support not enabled. Please rebuild Pangolin.");
+#endif    
 }
 
 void SaveToVideo(const Image<unsigned char>& image, const pangolin::VideoPixelFormat& fmt, const std::string& uri, bool /*top_line_first*/)
 {
+#ifdef BUILD_PANGOLIN_VIDEO
     std::unique_ptr<VideoOutputInterface> video = OpenVideoOutput(uri);
     StreamInfo stream(fmt, image.w, image.h, image.pitch);
     video->SetStreams({stream});
     video->WriteStreams(image.ptr);
+#else 
+    throw std::runtime_error("SaveToVideo Support not enabled. Please rebuild Pangolin.");
+#endif
 }
 
 TypedImage LoadTga(const std::string& filename)
@@ -596,8 +604,10 @@ TypedImage LoadImage(const std::string& filename, ImageFileType file_type)
         return LoadJpg(filename);
     case ImageFileTypePpm:
         return LoadPpm(filename);
+#ifdef BUILD_PANGOLIN_VIDEO        
     case ImageFileTypePango:
         return LoadFromVideo(filename);
+#endif        
     default:
         throw std::runtime_error("Unsupported image file type, '" + filename + "'");
     }
@@ -636,8 +646,12 @@ void SaveImage(const Image<unsigned char>& image, const pangolin::VideoPixelForm
         return SavePng(image, fmt, filename, top_line_first);
     case ImageFileTypeExr:
         return SaveExr(image, fmt, filename, top_line_first);
+        
+#ifdef BUILD_PANGOLIN_VIDEO
     case ImageFileTypePango:
         return SaveToVideo(image, fmt, filename, top_line_first);
+#endif        
+        
     default:
         throw std::runtime_error("Unsupported image file type, '" + filename + "'");
     }
